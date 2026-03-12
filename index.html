@@ -4,13 +4,371 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Brief Locații · Universum</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,600;9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #080d18; }
+    input, textarea, select, button { font-family: 'DM Sans', sans-serif; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
   <div id="root"></div>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18",
+        "react-dom/client": "https://esm.sh/react-dom@18/client"
+      }
+    }
+  </script>
   <script type="module">
-    import React from 'https://esm.sh/react@18'
-    import ReactDOM from 'https://esm.sh/react-dom@18/client'
-    // paste App component here
+    import React, { useState } from 'react';
+    import { createRoot } from 'react-dom/client';
+
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOE5IjBiu4tfiFfCCRiIDup5c2qDgm8I3GI1h0yh5xmdTEYOxt1sO8JszyfIMJauGV9w/exec";
+
+    const ACCOUNTS = [
+      "Ana G.", "Emilia P.", "Eva M.", "Gabriel M.",
+      "Ioana N.", "Loredana S.", "Marius B.", "Ramona C.", "Vadim P.",
+    ];
+
+    const EVENT_TYPES = [
+      { value: "MICE", label: "MICE", desc: "conferință, incentive, congres" },
+      { value: "TB", label: "TB / Activare", desc: "teambuilding, activare, outdoor" },
+    ];
+
+    const initialForm = {
+      account: "", eventType: "", client: "", period: "",
+      participants: "", zone: "", agenda: "", deadline: "",
+      extraSpaces: "", pastLocations: "", avoidLocations: "",
+      clientSuggestions: "", teamCount: "", teamRooms: "",
+      teamMeals: "", stylePreferences: "", accountNotes: "",
+    };
+
+    const gold = "#b89a5e", goldLight = "#d4b878", bg = "#080d18";
+    const surface = "#0e1420", surfaceHigh = "#0d1525";
+    const border = "#1e2d48", borderHover = "#2a3a5a";
+    const textPrimary = "#c8d4f0", textMuted = "#4a5775";
+    const textLabel = "#7a8ab0", cream = "#e8d5a8", errorColor = "#e05555";
+
+    const baseInput = {
+      width: "100%", padding: "0.65rem 0.9rem",
+      background: surface, border: `1px solid ${border}`,
+      borderRadius: "6px", color: textPrimary,
+      fontSize: "0.85rem", fontFamily: "'DM Sans', sans-serif",
+      outline: "none", boxSizing: "border-box", transition: "border-color 0.2s",
+    };
+
+    const Section = ({ number, title, children, optional }) =>
+      React.createElement('div', {
+        style: { marginBottom: "2.4rem", borderLeft: `3px solid ${optional ? gold + "44" : gold}`, paddingLeft: "1.6rem" }
+      },
+        React.createElement('div', { style: { display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" } },
+          React.createElement('span', {
+            style: {
+              background: optional ? "transparent" : gold, border: `2px solid ${gold}`,
+              color: optional ? gold : "#0e1420", borderRadius: "50%",
+              width: "26px", height: "26px", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: "0.7rem", fontWeight: "700",
+              flexShrink: 0, fontFamily: "monospace",
+            }
+          }, number),
+          React.createElement('h3', {
+            style: { margin: 0, fontSize: "0.8rem", letterSpacing: "0.15em", textTransform: "uppercase", color: optional ? "#6b7a99" : textPrimary, fontFamily: "'DM Sans', sans-serif", fontWeight: "600" }
+          }, title, optional && React.createElement('span', { style: { color: "#4a5568", fontSize: "0.7rem" } }, " — opțional"))
+        ),
+        children
+      );
+
+    const Field = ({ label, hint, children }) =>
+      React.createElement('div', { style: { marginBottom: "1.1rem" } },
+        label && React.createElement('label', { style: { display: "block", marginBottom: "0.35rem", fontSize: "0.75rem", color: textLabel, letterSpacing: "0.05em" } }, label),
+        hint && React.createElement('div', { style: { fontSize: "0.68rem", color: textMuted, marginBottom: "0.4rem", fontStyle: "italic" } }, hint),
+        children
+      );
+
+    const InputField = ({ value, onChange, placeholder, type = "text", hasError }) => {
+      const [focused, setFocused] = useState(false);
+      return React.createElement('input', {
+        type, value, onChange, placeholder,
+        style: { ...baseInput, borderColor: hasError ? errorColor : focused ? gold : border },
+        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
+      });
+    };
+
+    const TextArea = ({ value, onChange, placeholder, rows = 3, hasError }) => {
+      const [focused, setFocused] = useState(false);
+      return React.createElement('textarea', {
+        value, onChange, placeholder, rows,
+        style: { ...baseInput, resize: "vertical", minHeight: "80px", lineHeight: "1.5", borderColor: hasError ? errorColor : focused ? gold : border },
+        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
+      });
+    };
+
+    const SelectField = ({ value, onChange, options, hasError, placeholder }) => {
+      const [focused, setFocused] = useState(false);
+      return React.createElement('select', {
+        value, onChange,
+        style: {
+          ...baseInput, cursor: "pointer", appearance: "none",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a99' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: "2rem",
+          borderColor: hasError ? errorColor : focused ? gold : border,
+          color: value ? textPrimary : textMuted,
+        },
+        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
+      },
+        React.createElement('option', { value: "" }, placeholder || "— selectează —"),
+        options.map(o => React.createElement('option', { key: o.value || o, value: o.value || o }, o.label || o))
+      );
+    };
+
+    const EventTypePicker = ({ value, onChange, hasError }) =>
+      React.createElement('div', { style: { display: "flex", gap: "0.75rem" } },
+        EVENT_TYPES.map(t => {
+          const active = value === t.value;
+          return React.createElement('div', {
+            key: t.value,
+            onClick: () => onChange(t.value),
+            style: {
+              flex: 1, padding: "0.75rem 1rem", borderRadius: "8px", cursor: "pointer",
+              border: `2px solid ${active ? gold : hasError ? errorColor : border}`,
+              background: active ? gold + "18" : surface, transition: "all 0.18s",
+            }
+          },
+            React.createElement('div', { style: { fontSize: "0.85rem", fontWeight: "700", color: active ? gold : textPrimary, marginBottom: "0.2rem" } }, t.label),
+            React.createElement('div', { style: { fontSize: "0.68rem", color: active ? gold + "aa" : textMuted, lineHeight: "1.4" } }, t.desc)
+          );
+        })
+      );
+
+    const NiceBlock = ({ number, title, children }) => {
+      const [open, setOpen] = useState(false);
+      return React.createElement('div', { style: { marginBottom: "0.75rem" } },
+        React.createElement('div', {
+          onClick: () => setOpen(o => !o),
+          style: {
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.75rem 1rem", borderRadius: open ? "8px 8px 0 0" : "8px", cursor: "pointer",
+            background: open ? surfaceHigh : surface, border: `1px solid ${open ? borderHover : border}`,
+            transition: "all 0.18s",
+          }
+        },
+          React.createElement('div', { style: { display: "flex", alignItems: "center", gap: "0.75rem" } },
+            React.createElement('span', {
+              style: {
+                border: `1px solid ${gold}44`, color: gold + "88",
+                borderRadius: "50%", width: "22px", height: "22px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "0.65rem", fontFamily: "monospace", flexShrink: 0,
+              }
+            }, number),
+            React.createElement('span', { style: { fontSize: "0.78rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b7a99" } }, title)
+          ),
+          React.createElement('span', { style: { color: textMuted, fontSize: "0.75rem", display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.18s" } }, "▾")
+        ),
+        open && React.createElement('div', {
+          style: { padding: "1.25rem 1.25rem 0.5rem", background: surfaceHigh, border: `1px solid ${borderHover}`, borderTop: "none", borderRadius: "0 0 8px 8px" }
+        }, children)
+      );
+    };
+
+    const Shell = ({ children }) =>
+      React.createElement('div', { style: { minHeight: "100vh", background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary } },
+        React.createElement('div', {
+          style: { borderBottom: `1px solid ${border}`, padding: "1.25rem 2rem", display: "flex", alignItems: "center", gap: "1rem", position: "sticky", top: 0, background: bg, zIndex: 100 }
+        },
+          React.createElement('div', { style: { width: "8px", height: "8px", borderRadius: "50%", background: gold, boxShadow: `0 0 10px ${gold}88` } }),
+          React.createElement('span', { style: { fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", color: cream } }, "UNIVERSUM"),
+          React.createElement('span', { style: { color: "#2a3350" } }, "|"),
+          React.createElement('span', { style: { fontSize: "0.72rem", letterSpacing: "0.12em", color: textMuted, textTransform: "uppercase" } }, "Brief Locații"),
+          React.createElement('span', { style: { marginLeft: "auto", fontSize: "0.65rem", color: "#2a3a50" } }, "● Google Sheets sync")
+        ),
+        React.createElement('div', { style: { maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" } }, children)
+      );
+
+    const App = () => {
+      const [form, setForm] = useState(initialForm);
+      const [errors, setErrors] = useState({});
+      const [status, setStatus] = useState("idle");
+      const [errorMsg, setErrorMsg] = useState("");
+
+      const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+      const setVal = (field) => (val) => setForm(f => ({ ...f, [field]: val }));
+
+      const validate = () => {
+        const e = {};
+        if (!form.account) e.account = true;
+        if (!form.eventType) e.eventType = true;
+        if (!form.client.trim()) e.client = true;
+        if (!form.period.trim()) e.period = true;
+        if (!form.participants.trim()) e.participants = true;
+        if (!form.zone.trim()) e.zone = true;
+        if (!form.agenda.trim()) e.agenda = true;
+        if (!form.deadline.trim()) e.deadline = true;
+        return e;
+      };
+
+      const handleSubmit = async () => {
+        const e = validate();
+        setErrors(e);
+        if (Object.keys(e).length > 0) return;
+        setStatus("sending");
+        try {
+          await fetch(APPS_SCRIPT_URL, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...form, submittedAt: new Date().toLocaleString("ro-RO") }),
+          });
+          setStatus("success");
+        } catch {
+          setStatus("error");
+          setErrorMsg("Eroare de rețea. Verifică conexiunea.");
+        }
+      };
+
+      const handleReset = () => { setForm(initialForm); setErrors({}); setStatus("idle"); setErrorMsg(""); };
+
+      const h = (tag, props, ...children) => React.createElement(tag, props, ...children);
+      const e = React.createElement;
+
+      if (status === "sending") return e(Shell, null,
+        e('div', { style: { textAlign: "center", padding: "5rem 2rem" } },
+          e('div', { style: { width: "48px", height: "48px", border: `3px solid ${border}`, borderTopColor: gold, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1.5rem" } }),
+          e('div', { style: { color: textPrimary, marginBottom: "0.4rem" } }, "Se trimite brieful…"),
+          e('div', { style: { color: textMuted, fontSize: "0.8rem" } }, "Google Sheets + email")
+        )
+      );
+
+      if (status === "success") return e(Shell, null,
+        e('div', { style: { textAlign: "center", padding: "4rem 2rem" } },
+          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: `linear-gradient(135deg, ${gold}, ${goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: "#0e1420" } }, "✓"),
+          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: cream, margin: "0 0 0.5rem" } }, "Brief trimis!"),
+          e('p', { style: { color: textMuted, fontSize: "0.85rem", margin: "0 0 0.3rem" } }, "Location Manager-ul a primit emailul · datele sunt în Google Sheets."),
+          e('p', { style: { color: "#2a3a50", fontSize: "0.78rem", margin: "0 0 2.5rem" } },
+            e('strong', { style: { color: textPrimary } }, form.client), ` · ${form.eventType} · ${form.account}`
+          ),
+          e('button', {
+            onClick: handleReset,
+            style: { background: `linear-gradient(135deg, ${gold}, ${goldLight})`, border: "none", borderRadius: "8px", padding: "0.85rem 2.5rem", color: "#0e1420", fontSize: "0.8rem", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }
+          }, "+ Brief nou")
+        )
+      );
+
+      if (status === "error") return e(Shell, null,
+        e('div', { style: { textAlign: "center", padding: "4rem 2rem" } },
+          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: "#2a0e0e", border: `2px solid ${errorColor}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: errorColor } }, "✕"),
+          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: cream, margin: "0 0 0.5rem" } }, "Eroare la trimitere"),
+          e('p', { style: { color: "#e07070", fontSize: "0.85rem", margin: "0 0 2rem" } }, errorMsg),
+          e('button', { onClick: () => setStatus("idle"), style: { background: surfaceHigh, border: `1px solid ${borderHover}`, borderRadius: "8px", padding: "0.75rem 2rem", color: textPrimary, fontSize: "0.8rem", cursor: "pointer" } }, "← Încearcă din nou")
+        )
+      );
+
+      return e(Shell, null,
+        e('div', { style: { marginBottom: "2.5rem" } },
+          e('h1', { style: { fontFamily: "'Playfair Display', serif", fontSize: "2rem", margin: "0 0 0.4rem", color: cream, fontWeight: "600" } }, "Brief Solicitare Locație"),
+          e('p', { style: { margin: 0, color: textMuted, fontSize: "0.8rem", letterSpacing: "0.04em" } }, "Câmpurile cu linie aurie sunt obligatorii · datele merg automat în Google Sheets + email")
+        ),
+
+        Object.keys(errors).length > 0 && e('div', { style: { background: "#2a0e0e", border: "1px solid #5e2020", borderRadius: "8px", padding: "0.8rem 1rem", marginBottom: "2rem", fontSize: "0.78rem", color: "#e07070" } },
+          "⚠ Completează câmpurile obligatorii înainte de a trimite."
+        ),
+
+        e(Section, { number: "0", title: "Account" },
+          e('div', { style: { display: "grid", gridTemplateColumns: "200px 1fr", gap: "1.25rem", alignItems: "start" } },
+            e(Field, { label: "Cine trimite?" }, e(SelectField, { value: form.account, onChange: set("account"), options: ACCOUNTS, hasError: errors.account, placeholder: "— selectează —" })),
+            e(Field, { label: "Tip eveniment" }, e(EventTypePicker, { value: form.eventType, onChange: setVal("eventType"), hasError: errors.eventType }))
+          )
+        ),
+
+        e(Section, { number: "1", title: "Client / Companie" },
+          e(InputField, { value: form.client, onChange: set("client"), placeholder: "ex. Vodafone Romania", hasError: errors.client })
+        ),
+
+        e(Section, { number: "2", title: "Data / Perioada evenimentului" },
+          e(Field, { hint: "Scrie liber — date fixe, interval, weekenduri preferate, luni, orice restricții" },
+            e(TextArea, { value: form.period, onChange: set("period"), rows: 2, hasError: errors.period, placeholder: "ex. 13-15 iunie 2025\nsau: un weekend în iulie, preferabil mijloc de lună" })
+          )
+        ),
+
+        e(Section, { number: "3", title: "Nr. participanți" },
+          e(Field, { hint: "Include participanți + echipă organizatoare dacă e cazul" },
+            e(InputField, { value: form.participants, onChange: set("participants"), placeholder: "ex. 80 participanți + 5 echipă", hasError: errors.participants })
+          )
+        ),
+
+        e(Section, { number: "4", title: "Oraș / Zonă solicitată" },
+          e(Field, { hint: "Distanță față de București, regiune, preferințe geografice" },
+            e(InputField, { value: form.zone, onChange: set("zone"), placeholder: "ex. max. 100km față de Buc., munte, zona Sibiu...", hasError: errors.zone })
+          )
+        ),
+
+        e(Section, { number: "5", title: "Agendă estimată" },
+          e(Field, { hint: "F&B (mese, coffee break-uri), spații conferință / TB, activități extra, facilități necesare" },
+            e(TextArea, { value: form.agenda, onChange: set("agenda"), rows: 5, hasError: errors.agenda, placeholder: "ex.\n• Zi 1: check-in, cină gala, 1 sală conferință 80 pax\n• Zi 2: mic-dejun, 2× coffee break, prânz, plenară + 3 breakout\n• Zi 3: mic-dejun, activitate outdoor, prânz, check-out" })
+          )
+        ),
+
+        e(Section, { number: "6", title: "Deadline predare propunere" },
+          e(Field, { hint: "Dată exactă sau termen relativ" },
+            e(InputField, { value: form.deadline, onChange: set("deadline"), placeholder: "ex. 20.05.2025  sau  urgent — 2 zile lucrătoare", hasError: errors.deadline })
+          )
+        ),
+
+        e(Section, { number: "7", title: "Spații extra (TB / activări / expo)" },
+          e(Field, { hint: "Spații în plus față de sala principală — dacă e cazul" },
+            e(TextArea, { value: form.extraSpaces, onChange: set("extraSpaces"), rows: 3, placeholder: "ex. 1 spațiu outdoor min. 500mp pentru activitate TB, 1 sală expo 200mp" })
+          )
+        ),
+
+        e('div', { style: { borderTop: `1px solid ${border}`, paddingTop: "2rem", marginTop: "0.5rem" } },
+          e('div', { style: { fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: gold + "55", marginBottom: "1.25rem" } }, "NICE TO HAVE — click pentru a extinde"),
+
+          e(NiceBlock, { number: "a", title: "Locații anterioare / de evitat / sugerate de client" },
+            e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" } },
+              e(Field, { label: "Au mai fost la" }, e(TextArea, { value: form.pastLocations, onChange: set("pastLocations"), rows: 2, placeholder: "ex. Poiana Brasov, Sinaia..." })),
+              e(Field, { label: "Nu doresc la" }, e(TextArea, { value: form.avoidLocations, onChange: set("avoidLocations"), rows: 2, placeholder: "ex. zona Ploiești..." }))
+            ),
+            e(Field, { label: "Sugestii directe de la client" }, e(InputField, { value: form.clientSuggestions, onChange: set("clientSuggestions"), placeholder: "ex. Conacul X, Hotel Y" }))
+          ),
+
+          e(NiceBlock, { number: "b", title: "Preferințe / stil locație" },
+            e(Field, null, e(TextArea, { value: form.stylePreferences, onChange: set("stylePreferences"), rows: 2, placeholder: "ex. locație atipică, nu hotel clasic de conferință, specific rustic..." }))
+          ),
+
+          e(NiceBlock, { number: "c", title: "Necesar echipă & furnizori" },
+            e(Field, { hint: "Estimat inițial — va fi calibrat ulterior" },
+              e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" } },
+                e(Field, { label: "Nr. persoane echipă" }, e(InputField, { value: form.teamCount, onChange: set("teamCount"), placeholder: "ex. 5" })),
+                e(Field, { label: "Camere necesare" }, e(InputField, { value: form.teamRooms, onChange: set("teamRooms"), placeholder: "ex. 4" })),
+                e(Field, { label: "Mese incluse" }, e(InputField, { value: form.teamMeals, onChange: set("teamMeals"), placeholder: "ex. toate" }))
+              )
+            )
+          ),
+
+          e(NiceBlock, { number: "d", title: "Sugestii sau observații din partea accountului" },
+            e(Field, null, e(TextArea, { value: form.accountNotes, onChange: set("accountNotes"), rows: 3, placeholder: "Orice informație suplimentară relevantă pentru Location Manager..." }))
+          )
+        ),
+
+        e('div', { style: { marginTop: "2.5rem", display: "flex", justifyContent: "flex-end", gap: "1rem", alignItems: "center" } },
+          e('div', { style: { fontSize: "0.7rem", color: "#2a3a50" } }, "→ Google Sheets + email automat"),
+          e('button', {
+            onClick: handleSubmit,
+            style: {
+              background: `linear-gradient(135deg, ${gold}, ${goldLight})`,
+              border: "none", borderRadius: "8px", padding: "0.85rem 2.5rem",
+              color: "#0e1420", fontSize: "0.8rem", fontWeight: "700",
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              cursor: "pointer", boxShadow: `0 4px 20px ${gold}40`,
+            }
+          }, "Trimite Brief →")
+        )
+      );
+    };
+
+    createRoot(document.getElementById('root')).render(React.createElement(App));
   </script>
 </body>
 </html>
