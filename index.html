@@ -289,8 +289,8 @@
 
         // 6
         e(Section, { number: "6", title: "Deadline predare propunere" },
-          e(Field, { hint: "Data exacta sau termen relativ" },
-            e(Input, { value: form.deadline, onChange: set("deadline"), placeholder: "ex. 20.05.2025  sau  urgent — 2 zile lucratoare", err: errors.deadline })
+          e(Field, null,
+            e(Input, { value: form.deadline, onChange: set("deadline"), type: "date", err: errors.deadline })
           )
         ),
 
