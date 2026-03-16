@@ -62,13 +62,19 @@
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOE5IjBiu4tfiFfCCRiIDup5c2qDgm8I3GI1h0yh5xmdTEYOxt1sO8JszyfIMJauGV9w/exec";
 
     const ACCOUNTS = ["Ana G.", "Emilia P.", "Eva M.", "Gabriel M.", "Ioana N.", "Loredana S.", "Marius B.", "Ramona C.", "Vadim P."];
-    const EVENT_TYPES = [
+    const DIVIZII = [
       { value: "MICE", label: "MICE", desc: "conferință, incentive, congres" },
       { value: "TB", label: "TB / Activare", desc: "teambuilding, activare, outdoor" },
     ];
+    const EVENT_SUBTYPES = [
+      "Conferinta / Summit", "CEO Meeting", "Board Meeting",
+      "Team Building", "Activare", "Incentive Trip",
+      "Lansare produs", "Party / Petrecere", "Gala / Awards Night",
+      "Training", "Workshop", "Altul",
+    ];
 
     const init = {
-      account: "", eventType: "", client: "", period: "",
+      account: "", divizie: "", eventSubType: "", client: "", period: "",
       participants: "", zone: "", agenda: "", deadline: "",
       extraSpaces: "", accountNotes: "",
       pastLocations: "", avoidLocations: "", clientSuggestions: "",
@@ -125,9 +131,9 @@
         options.map(o => e('option', { key: o.value || o, value: o.value || o }, o.label || o))
       );
 
-    const EventPicker = ({ value, onChange, err }) =>
+    const Diviziepicker = ({ value, onChange, err }) =>
       e('div', { style: { display: "flex", gap: "0.75rem" } },
-        EVENT_TYPES.map(t => {
+        DIVIZII.map(t => {
           const active = value === t.value;
           return e('div', {
             key: t.value, onClick: () => onChange(t.value),
@@ -178,7 +184,8 @@
       const validate = () => {
         const err = {};
         if (!form.account) err.account = 1;
-        if (!form.eventType) err.eventType = 1;
+        if (!form.divizie) err.divizie = 1;
+        if (!form.eventSubType) err.eventSubType = 1;
         if (!form.client.trim()) err.client = 1;
         if (!form.period.trim()) err.period = 1;
         if (!form.participants.trim()) err.participants = 1;
@@ -221,7 +228,7 @@
           e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: "linear-gradient(135deg, #b89a5e, #d4b878)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: "#fff" } }, "✓"),
           e('h2', { style: { fontFamily: "'Playfair Display', serif", color: "#1a1f2e", margin: "0 0 0.5rem" } }, "Brief trimis!"),
           e('p', { style: { color: "#444", fontSize: "0.85rem", margin: "0 0 0.3rem" } }, "Location Manager-ul a primit emailul · datele sunt în Google Sheets."),
-          e('p', { style: { color: "#666", fontSize: "0.78rem", margin: "0 0 2.5rem" } }, form.client, " · ", form.eventType, " · ", form.account),
+          e('p', { style: { color: "#666", fontSize: "0.78rem", margin: "0 0 2.5rem" } }, form.client, " · ", form.divizie, " · ", form.account),
           e('button', { onClick: reset, className: "btn-submit" }, "+ Brief nou")
         )
       );
@@ -249,7 +256,7 @@
         e(Section, { number: "0", title: "Account" },
           e('div', { style: { display: "grid", gridTemplateColumns: "190px 1fr", gap: "1.2rem", alignItems: "start" } },
             e(Field, { label: "Cine trimite?" }, e(Select, { value: form.account, onChange: set("account"), options: ACCOUNTS, placeholder: "— selecteaza —", err: errors.account })),
-            e(Field, { label: "Tip eveniment" }, e(EventPicker, { value: form.eventType, onChange: setV("eventType"), err: errors.eventType }))
+            e(Field, { label: "Divizie" }, e(Diviziepicker, { value: form.divizie, onChange: setV("divizie"), err: errors.divizie }))
           )
         ),
 
@@ -258,52 +265,58 @@
           e(Input, { value: form.client, onChange: set("client"), placeholder: "ex. Vodafone Romania", err: errors.client })
         ),
 
-        // 2
-        e(Section, { number: "2", title: "Data / Perioada evenimentului" },
+        // 1b — Tip eveniment
+        e(Section, { number: "2", title: "Tip eveniment" },
+          e(Input, { value: form.eventSubType, onChange: set("eventSubType"), err: errors.eventSubType,
+            placeholder: "ex. Conferinta, CEO Meeting, Lansare produs, Party, Gala, Team Building, Incentive, Training..." })
+        ),
+
+        // 3 (was 2)
+        e(Section, { number: "3", title: "Data / Perioada evenimentului" },
           e(Field, { hint: "Scrie liber — date fixe, interval, weekenduri preferate, restrictii" },
             e(Textarea, { value: form.period, onChange: set("period"), rows: 2, err: errors.period, placeholder: "ex. 13-15 iunie 2025\nsau: un weekend in iulie, preferabil mijloc de luna" })
           )
         ),
 
-        // 3
-        e(Section, { number: "3", title: "Nr. participanti" },
+        // 4
+        e(Section, { number: "4", title: "Nr. participanti" },
           e(Field, { hint: "Include participanti + echipa organizatoare daca e cazul" },
             e(Input, { value: form.participants, onChange: set("participants"), placeholder: "ex. 80 participanti + 5 echipa", err: errors.participants })
           )
         ),
 
-        // 4
-        e(Section, { number: "4", title: "Oras / Zona solicitata" },
+        // 5
+        e(Section, { number: "5", title: "Oras / Zona solicitata" },
           e(Field, { hint: "Distanta fata de Bucuresti, regiune, preferinte geografice" },
             e(Input, { value: form.zone, onChange: set("zone"), placeholder: "ex. max. 100km fata de Buc., munte, zona Sibiu...", err: errors.zone })
           )
         ),
 
-        // 5
-        e(Section, { number: "5", title: "Agenda estimata" },
+        // 6
+        e(Section, { number: "6", title: "Agenda estimata" },
           e(Field, { hint: "F&B (mese, coffee break-uri), spatii conferinta / TB, activitati extra, facilitati necesare" },
             e(Textarea, { value: form.agenda, onChange: set("agenda"), rows: 5, err: errors.agenda,
               placeholder: "ex.\n• Zi 1: check-in, cina gala, 1 sala conferinta 80 pax\n• Zi 2: mic-dejun, 2x coffee break, pranz, plenara + 3 breakout\n• Zi 3: mic-dejun, activitate outdoor, pranz, check-out" })
           )
         ),
 
-        // 6
-        e(Section, { number: "6", title: "Deadline predare propunere" },
+        // 7
+        e(Section, { number: "7", title: "Deadline predare propunere" },
           e(Field, null,
             e(Input, { value: form.deadline, onChange: set("deadline"), type: "date", err: errors.deadline })
           )
         ),
 
-        // 7
-        e(Section, { number: "7", title: "Spatii extra (TB / activari / expo)" },
+        // 8
+        e(Section, { number: "8", title: "Spatii extra (TB / activari / expo)" },
           e(Field, { hint: "Spatii in plus fata de sala principala — daca e cazul" },
             e(Textarea, { value: form.extraSpaces, onChange: set("extraSpaces"), rows: 3,
               placeholder: "ex. 1 spatiu outdoor min. 500mp pentru activitate TB, 1 sala expo 200mp" })
           )
         ),
 
-        // 8 — mandatory
-        e(Section, { number: "8", title: "Sugestii / Observatii account" },
+        // 9 — mandatory
+        e(Section, { number: "9", title: "Sugestii / Observatii account" },
           e(Field, { hint: "Orice informatie suplimentara relevanta pentru Location Manager" },
             e(Textarea, { value: form.accountNotes, onChange: set("accountNotes"), rows: 4, err: errors.accountNotes,
               placeholder: "ex. clientul e foarte sensibil la pret, prefera sa evite lanturile hoteliere mari, a mentionat ca i-a placut zona Brasovului..." })
