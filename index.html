@@ -7,20 +7,53 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,600;9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background: #080d18; }
+    body { margin: 0; padding: 0; background: #f4f5f7; }
     input, textarea, select, button { font-family: 'DM Sans', sans-serif; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .input-field, .textarea-field, .select-field {
+      width: 100%; padding: 0.65rem 0.9rem;
+      background: #ffffff; border: 1.5px solid #dde1ea;
+      border-radius: 7px; color: #1a1f2e;
+      font-size: 0.875rem; font-family: 'DM Sans', sans-serif;
+      outline: none; box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field:focus, .textarea-field:focus, .select-field:focus {
+      border-color: #b89a5e;
+      box-shadow: 0 0 0 3px rgba(184,154,94,0.12);
+    }
+    .input-field.error, .textarea-field.error, .select-field.error {
+      border-color: #e05555;
+      box-shadow: 0 0 0 3px rgba(224,85,85,0.1);
+    }
+    .textarea-field { resize: vertical; min-height: 80px; line-height: 1.6; }
+    .select-field {
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 2rem;
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, #b89a5e, #d4b878);
+      border: none; border-radius: 8px; padding: 0.85rem 2.5rem;
+      color: #1a1200; font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(184,154,94,0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(184,154,94,0.4); }
+    .btn-secondary {
+      background: #fff; border: 1.5px solid #dde1ea; border-radius: 8px;
+      padding: 0.75rem 1.8rem; color: #555; font-size: 0.8rem;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .btn-secondary:hover { border-color: #b89a5e; }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18",
-        "react-dom/client": "https://esm.sh/react-dom@18/client"
-      }
-    }
+    { "imports": { "react": "https://esm.sh/react@18", "react-dom/client": "https://esm.sh/react-dom@18/client" } }
   </script>
   <script type="module">
     import React, { useState } from 'react';
@@ -28,192 +61,138 @@
 
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOE5IjBiu4tfiFfCCRiIDup5c2qDgm8I3GI1h0yh5xmdTEYOxt1sO8JszyfIMJauGV9w/exec";
 
-    const ACCOUNTS = [
-      "Ana G.", "Emilia P.", "Eva M.", "Gabriel M.",
-      "Ioana N.", "Loredana S.", "Marius B.", "Ramona C.", "Vadim P.",
-    ];
-
+    const ACCOUNTS = ["Ana G.", "Emilia P.", "Eva M.", "Gabriel M.", "Ioana N.", "Loredana S.", "Marius B.", "Ramona C.", "Vadim P."];
     const EVENT_TYPES = [
       { value: "MICE", label: "MICE", desc: "conferință, incentive, congres" },
       { value: "TB", label: "TB / Activare", desc: "teambuilding, activare, outdoor" },
     ];
 
-    const initialForm = {
+    const init = {
       account: "", eventType: "", client: "", period: "",
       participants: "", zone: "", agenda: "", deadline: "",
-      extraSpaces: "", pastLocations: "", avoidLocations: "",
-      clientSuggestions: "", teamCount: "", teamRooms: "",
-      teamMeals: "", stylePreferences: "", accountNotes: "",
+      extraSpaces: "", accountNotes: "",
+      pastLocations: "", avoidLocations: "", clientSuggestions: "",
+      teamCount: "", teamRooms: "", teamMeals: "", stylePreferences: "",
     };
 
-    const gold = "#b89a5e", goldLight = "#d4b878", bg = "#080d18";
-    const surface = "#0e1420", surfaceHigh = "#0d1525";
-    const border = "#1e2d48", borderHover = "#2a3a5a";
-    const textPrimary = "#c8d4f0", textMuted = "#4a5775";
-    const textLabel = "#7a8ab0", cream = "#e8d5a8", errorColor = "#e05555";
+    const e = React.createElement;
 
-    const baseInput = {
-      width: "100%", padding: "0.65rem 0.9rem",
-      background: surface, border: `1px solid ${border}`,
-      borderRadius: "6px", color: textPrimary,
-      fontSize: "0.85rem", fontFamily: "'DM Sans', sans-serif",
-      outline: "none", boxSizing: "border-box", transition: "border-color 0.2s",
-    };
+    // ── Layout components ──
+    const Shell = ({ children }) => e('div', { style: { minHeight: "100vh", background: "#f4f5f7", fontFamily: "'DM Sans', sans-serif" } },
+      e('div', { style: { background: "#1a1f2e", padding: "1rem 2rem", display: "flex", alignItems: "center", gap: "1rem", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } },
+        e('div', { style: { width: "7px", height: "7px", borderRadius: "50%", background: "#b89a5e" } }),
+        e('span', { style: { fontFamily: "'Playfair Display', serif", fontSize: "1rem", color: "#e8d5a8" } }, "UNIVERSUM"),
+        e('span', { style: { color: "#3a4460" } }, "|"),
+        e('span', { style: { fontSize: "0.72rem", letterSpacing: "0.12em", color: "#6b7a99", textTransform: "uppercase" } }, "Brief Locații"),
+        e('span', { style: { marginLeft: "auto", fontSize: "0.65rem", color: "#4a5570" } }, "Google Sheets sync")
+      ),
+      e('div', { style: { maxWidth: "700px", margin: "0 auto", padding: "2.5rem 1.5rem" } }, children)
+    );
 
-    const Section = ({ number, title, children, optional }) =>
-      React.createElement('div', {
-        style: { marginBottom: "2.4rem", borderLeft: `3px solid ${optional ? gold + "44" : gold}`, paddingLeft: "1.6rem" }
-      },
-        React.createElement('div', { style: { display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" } },
-          React.createElement('span', {
-            style: {
-              background: optional ? "transparent" : gold, border: `2px solid ${gold}`,
-              color: optional ? gold : "#0e1420", borderRadius: "50%",
-              width: "26px", height: "26px", display: "flex", alignItems: "center",
-              justifyContent: "center", fontSize: "0.7rem", fontWeight: "700",
-              flexShrink: 0, fontFamily: "monospace",
-            }
-          }, number),
-          React.createElement('h3', {
-            style: { margin: 0, fontSize: "0.8rem", letterSpacing: "0.15em", textTransform: "uppercase", color: optional ? "#6b7a99" : textPrimary, fontFamily: "'DM Sans', sans-serif", fontWeight: "600" }
-          }, title, optional && React.createElement('span', { style: { color: "#4a5568", fontSize: "0.7rem" } }, " — opțional"))
-        ),
-        children
+    const Section = ({ number, title, optional, children }) => e('div', {
+      style: { marginBottom: "2rem", borderLeft: `3px solid ${optional ? "#d4b87844" : "#b89a5e"}`, paddingLeft: "1.5rem" }
+    },
+      e('div', { style: { display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.9rem" } },
+        e('span', { style: {
+          background: optional ? "transparent" : "#b89a5e", border: "2px solid #b89a5e",
+          color: optional ? "#b89a5e" : "#fff", borderRadius: "50%",
+          width: "24px", height: "24px", display: "flex", alignItems: "center",
+          justifyContent: "center", fontSize: "0.68rem", fontWeight: "700",
+          flexShrink: 0, fontFamily: "monospace",
+        } }, number),
+        e('h3', { style: { margin: 0, fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: optional ? "#999" : "#2a2f3e", fontWeight: "600" } },
+          title, optional && e('span', { style: { color: "#bbb", fontSize: "0.68rem", fontWeight: "400" } }, " — opțional")
+        )
+      ),
+      children
+    );
+
+    const Field = ({ label, hint, children }) => e('div', { style: { marginBottom: "1rem" } },
+      label && e('label', { style: { display: "block", marginBottom: "0.3rem", fontSize: "0.74rem", color: "#666", letterSpacing: "0.03em" } }, label),
+      hint && e('div', { style: { fontSize: "0.68rem", color: "#999", marginBottom: "0.35rem", fontStyle: "italic" } }, hint),
+      children
+    );
+
+    const Input = ({ value, onChange, placeholder, type = "text", err }) =>
+      e('input', { type, value, onChange, placeholder, className: `input-field${err ? " error" : ""}` });
+
+    const Textarea = ({ value, onChange, placeholder, rows = 3, err }) =>
+      e('textarea', { value, onChange, placeholder, rows, className: `textarea-field${err ? " error" : ""}` });
+
+    const Select = ({ value, onChange, options, placeholder, err }) =>
+      e('select', { value, onChange, className: `select-field${err ? " error" : ""}`, style: { color: value ? "#1a1f2e" : "#aaa" } },
+        e('option', { value: "" }, placeholder || "— selectează —"),
+        options.map(o => e('option', { key: o.value || o, value: o.value || o }, o.label || o))
       );
 
-    const Field = ({ label, hint, children }) =>
-      React.createElement('div', { style: { marginBottom: "1.1rem" } },
-        label && React.createElement('label', { style: { display: "block", marginBottom: "0.35rem", fontSize: "0.75rem", color: textLabel, letterSpacing: "0.05em" } }, label),
-        hint && React.createElement('div', { style: { fontSize: "0.68rem", color: textMuted, marginBottom: "0.4rem", fontStyle: "italic" } }, hint),
-        children
-      );
-
-    const InputField = ({ value, onChange, placeholder, type = "text", hasError }) => {
-      const [focused, setFocused] = useState(false);
-      return React.createElement('input', {
-        type, value, onChange, placeholder,
-        style: { ...baseInput, borderColor: hasError ? errorColor : focused ? gold : border },
-        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
-      });
-    };
-
-    const TextArea = ({ value, onChange, placeholder, rows = 3, hasError }) => {
-      const [focused, setFocused] = useState(false);
-      return React.createElement('textarea', {
-        value, onChange, placeholder, rows,
-        style: { ...baseInput, resize: "vertical", minHeight: "80px", lineHeight: "1.5", borderColor: hasError ? errorColor : focused ? gold : border },
-        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
-      });
-    };
-
-    const SelectField = ({ value, onChange, options, hasError, placeholder }) => {
-      const [focused, setFocused] = useState(false);
-      return React.createElement('select', {
-        value, onChange,
-        style: {
-          ...baseInput, cursor: "pointer", appearance: "none",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a99' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: "2rem",
-          borderColor: hasError ? errorColor : focused ? gold : border,
-          color: value ? textPrimary : textMuted,
-        },
-        onFocus: () => setFocused(true), onBlur: () => setFocused(false)
-      },
-        React.createElement('option', { value: "" }, placeholder || "— selectează —"),
-        options.map(o => React.createElement('option', { key: o.value || o, value: o.value || o }, o.label || o))
-      );
-    };
-
-    const EventTypePicker = ({ value, onChange, hasError }) =>
-      React.createElement('div', { style: { display: "flex", gap: "0.75rem" } },
+    const EventPicker = ({ value, onChange, err }) =>
+      e('div', { style: { display: "flex", gap: "0.75rem" } },
         EVENT_TYPES.map(t => {
           const active = value === t.value;
-          return React.createElement('div', {
-            key: t.value,
-            onClick: () => onChange(t.value),
+          return e('div', {
+            key: t.value, onClick: () => onChange(t.value),
             style: {
-              flex: 1, padding: "0.75rem 1rem", borderRadius: "8px", cursor: "pointer",
-              border: `2px solid ${active ? gold : hasError ? errorColor : border}`,
-              background: active ? gold + "18" : surface, transition: "all 0.18s",
+              flex: 1, padding: "0.7rem 1rem", borderRadius: "7px", cursor: "pointer",
+              border: `2px solid ${active ? "#b89a5e" : err ? "#e05555" : "#dde1ea"}`,
+              background: active ? "#fdf8f0" : "#fff", transition: "all 0.15s",
             }
           },
-            React.createElement('div', { style: { fontSize: "0.85rem", fontWeight: "700", color: active ? gold : textPrimary, marginBottom: "0.2rem" } }, t.label),
-            React.createElement('div', { style: { fontSize: "0.68rem", color: active ? gold + "aa" : textMuted, lineHeight: "1.4" } }, t.desc)
+            e('div', { style: { fontSize: "0.85rem", fontWeight: "700", color: active ? "#8a6e30" : "#333", marginBottom: "0.15rem" } }, t.label),
+            e('div', { style: { fontSize: "0.68rem", color: active ? "#b89a5e" : "#aaa", lineHeight: "1.4" } }, t.desc)
           );
         })
       );
 
     const NiceBlock = ({ number, title, children }) => {
       const [open, setOpen] = useState(false);
-      return React.createElement('div', { style: { marginBottom: "0.75rem" } },
-        React.createElement('div', {
+      return e('div', { style: { marginBottom: "0.6rem" } },
+        e('div', {
           onClick: () => setOpen(o => !o),
           style: {
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "0.75rem 1rem", borderRadius: open ? "8px 8px 0 0" : "8px", cursor: "pointer",
-            background: open ? surfaceHigh : surface, border: `1px solid ${open ? borderHover : border}`,
-            transition: "all 0.18s",
+            padding: "0.7rem 1rem", borderRadius: open ? "7px 7px 0 0" : "7px",
+            cursor: "pointer", background: open ? "#fff" : "#fafafa",
+            border: `1.5px solid ${open ? "#dde1ea" : "#e8eaef"}`,
+            transition: "all 0.15s",
           }
         },
-          React.createElement('div', { style: { display: "flex", alignItems: "center", gap: "0.75rem" } },
-            React.createElement('span', {
-              style: {
-                border: `1px solid ${gold}44`, color: gold + "88",
-                borderRadius: "50%", width: "22px", height: "22px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "0.65rem", fontFamily: "monospace", flexShrink: 0,
-              }
-            }, number),
-            React.createElement('span', { style: { fontSize: "0.78rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b7a99" } }, title)
+          e('div', { style: { display: "flex", alignItems: "center", gap: "0.7rem" } },
+            e('span', { style: { border: "1.5px solid #d4b87866", color: "#b89a5e", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontFamily: "monospace", flexShrink: 0 } }, number),
+            e('span', { style: { fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#888" } }, title)
           ),
-          React.createElement('span', { style: { color: textMuted, fontSize: "0.75rem", display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.18s" } }, "▾")
+          e('span', { style: { color: "#bbb", fontSize: "0.75rem", display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" } }, "▾")
         ),
-        open && React.createElement('div', {
-          style: { padding: "1.25rem 1.25rem 0.5rem", background: surfaceHigh, border: `1px solid ${borderHover}`, borderTop: "none", borderRadius: "0 0 8px 8px" }
-        }, children)
+        open && e('div', { style: { padding: "1.1rem 1.1rem 0.4rem", background: "#fff", border: "1.5px solid #dde1ea", borderTop: "none", borderRadius: "0 0 7px 7px" } }, children)
       );
     };
 
-    const Shell = ({ children }) =>
-      React.createElement('div', { style: { minHeight: "100vh", background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary } },
-        React.createElement('div', {
-          style: { borderBottom: `1px solid ${border}`, padding: "1.25rem 2rem", display: "flex", alignItems: "center", gap: "1rem", position: "sticky", top: 0, background: bg, zIndex: 100 }
-        },
-          React.createElement('div', { style: { width: "8px", height: "8px", borderRadius: "50%", background: gold, boxShadow: `0 0 10px ${gold}88` } }),
-          React.createElement('span', { style: { fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", color: cream } }, "UNIVERSUM"),
-          React.createElement('span', { style: { color: "#2a3350" } }, "|"),
-          React.createElement('span', { style: { fontSize: "0.72rem", letterSpacing: "0.12em", color: textMuted, textTransform: "uppercase" } }, "Brief Locații"),
-          React.createElement('span', { style: { marginLeft: "auto", fontSize: "0.65rem", color: "#2a3a50" } }, "● Google Sheets sync")
-        ),
-        React.createElement('div', { style: { maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" } }, children)
-      );
-
+    // ── App ──
     const App = () => {
-      const [form, setForm] = useState(initialForm);
+      const [form, setForm] = useState(init);
       const [errors, setErrors] = useState({});
       const [status, setStatus] = useState("idle");
-      const [errorMsg, setErrorMsg] = useState("");
 
-      const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
-      const setVal = (field) => (val) => setForm(f => ({ ...f, [field]: val }));
+      const set = f => ev => setForm(p => ({ ...p, [f]: ev.target.value }));
+      const setV = f => v => setForm(p => ({ ...p, [f]: v }));
 
       const validate = () => {
-        const e = {};
-        if (!form.account) e.account = true;
-        if (!form.eventType) e.eventType = true;
-        if (!form.client.trim()) e.client = true;
-        if (!form.period.trim()) e.period = true;
-        if (!form.participants.trim()) e.participants = true;
-        if (!form.zone.trim()) e.zone = true;
-        if (!form.agenda.trim()) e.agenda = true;
-        if (!form.deadline.trim()) e.deadline = true;
-        return e;
+        const err = {};
+        if (!form.account) err.account = 1;
+        if (!form.eventType) err.eventType = 1;
+        if (!form.client.trim()) err.client = 1;
+        if (!form.period.trim()) err.period = 1;
+        if (!form.participants.trim()) err.participants = 1;
+        if (!form.zone.trim()) err.zone = 1;
+        if (!form.agenda.trim()) err.agenda = 1;
+        if (!form.deadline.trim()) err.deadline = 1;
+        if (!form.accountNotes.trim()) err.accountNotes = 1;
+        return err;
       };
 
-      const handleSubmit = async () => {
-        const e = validate();
-        setErrors(e);
-        if (Object.keys(e).length > 0) return;
+      const submit = async () => {
+        const err = validate();
+        setErrors(err);
+        if (Object.keys(err).length) return;
         setStatus("sending");
         try {
           await fetch(APPS_SCRIPT_URL, {
@@ -224,151 +203,148 @@
           setStatus("success");
         } catch {
           setStatus("error");
-          setErrorMsg("Eroare de rețea. Verifică conexiunea.");
         }
       };
 
-      const handleReset = () => { setForm(initialForm); setErrors({}); setStatus("idle"); setErrorMsg(""); };
-
-      const h = (tag, props, ...children) => React.createElement(tag, props, ...children);
-      const e = React.createElement;
+      const reset = () => { setForm(init); setErrors({}); setStatus("idle"); };
 
       if (status === "sending") return e(Shell, null,
         e('div', { style: { textAlign: "center", padding: "5rem 2rem" } },
-          e('div', { style: { width: "48px", height: "48px", border: `3px solid ${border}`, borderTopColor: gold, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1.5rem" } }),
-          e('div', { style: { color: textPrimary, marginBottom: "0.4rem" } }, "Se trimite brieful…"),
-          e('div', { style: { color: textMuted, fontSize: "0.8rem" } }, "Google Sheets + email")
+          e('div', { style: { width: "44px", height: "44px", border: "3px solid #eee", borderTopColor: "#b89a5e", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1.5rem" } }),
+          e('div', { style: { color: "#333", marginBottom: "0.4rem", fontSize: "1rem" } }, "Se trimite brieful..."),
+          e('div', { style: { color: "#999", fontSize: "0.82rem" } }, "Google Sheets + email")
         )
       );
 
       if (status === "success") return e(Shell, null,
         e('div', { style: { textAlign: "center", padding: "4rem 2rem" } },
-          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: `linear-gradient(135deg, ${gold}, ${goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: "#0e1420" } }, "✓"),
-          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: cream, margin: "0 0 0.5rem" } }, "Brief trimis!"),
-          e('p', { style: { color: textMuted, fontSize: "0.85rem", margin: "0 0 0.3rem" } }, "Location Manager-ul a primit emailul · datele sunt în Google Sheets."),
-          e('p', { style: { color: "#2a3a50", fontSize: "0.78rem", margin: "0 0 2.5rem" } },
-            e('strong', { style: { color: textPrimary } }, form.client), ` · ${form.eventType} · ${form.account}`
-          ),
-          e('button', {
-            onClick: handleReset,
-            style: { background: `linear-gradient(135deg, ${gold}, ${goldLight})`, border: "none", borderRadius: "8px", padding: "0.85rem 2.5rem", color: "#0e1420", fontSize: "0.8rem", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }
-          }, "+ Brief nou")
+          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: "linear-gradient(135deg, #b89a5e, #d4b878)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: "#fff" } }, "✓"),
+          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: "#1a1f2e", margin: "0 0 0.5rem" } }, "Brief trimis!"),
+          e('p', { style: { color: "#666", fontSize: "0.85rem", margin: "0 0 0.3rem" } }, "Location Manager-ul a primit emailul · datele sunt în Google Sheets."),
+          e('p', { style: { color: "#aaa", fontSize: "0.78rem", margin: "0 0 2.5rem" } }, form.client, " · ", form.eventType, " · ", form.account),
+          e('button', { onClick: reset, className: "btn-submit" }, "+ Brief nou")
         )
       );
 
       if (status === "error") return e(Shell, null,
         e('div', { style: { textAlign: "center", padding: "4rem 2rem" } },
-          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: "#2a0e0e", border: `2px solid ${errorColor}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: errorColor } }, "✕"),
-          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: cream, margin: "0 0 0.5rem" } }, "Eroare la trimitere"),
-          e('p', { style: { color: "#e07070", fontSize: "0.85rem", margin: "0 0 2rem" } }, errorMsg),
-          e('button', { onClick: () => setStatus("idle"), style: { background: surfaceHigh, border: `1px solid ${borderHover}`, borderRadius: "8px", padding: "0.75rem 2rem", color: textPrimary, fontSize: "0.8rem", cursor: "pointer" } }, "← Încearcă din nou")
+          e('div', { style: { width: "64px", height: "64px", borderRadius: "50%", background: "#fff0f0", border: "2px solid #e05555", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem", fontSize: "1.6rem", color: "#e05555" } }, "✕"),
+          e('h2', { style: { fontFamily: "'Playfair Display', serif", color: "#1a1f2e", margin: "0 0 0.5rem" } }, "Eroare la trimitere"),
+          e('p', { style: { color: "#e05555", fontSize: "0.85rem", margin: "0 0 2rem" } }, "Eroare de retea. Verifica conexiunea."),
+          e('button', { onClick: () => setStatus("idle"), className: "btn-secondary" }, "← Incearca din nou")
         )
       );
 
       return e(Shell, null,
-        e('div', { style: { marginBottom: "2.5rem" } },
-          e('h1', { style: { fontFamily: "'Playfair Display', serif", fontSize: "2rem", margin: "0 0 0.4rem", color: cream, fontWeight: "600" } }, "Brief Solicitare Locație"),
-          e('p', { style: { margin: 0, color: textMuted, fontSize: "0.8rem", letterSpacing: "0.04em" } }, "Câmpurile cu linie aurie sunt obligatorii · datele merg automat în Google Sheets + email")
+        e('div', { style: { marginBottom: "2.2rem" } },
+          e('h1', { style: { fontFamily: "'Playfair Display', serif", fontSize: "1.9rem", margin: "0 0 0.35rem", color: "#1a1f2e" } }, "Brief Solicitare Locatie"),
+          e('p', { style: { margin: 0, color: "#999", fontSize: "0.8rem" } }, "Campurile marcate sunt obligatorii · datele merg automat in Google Sheets + email")
         ),
 
-        Object.keys(errors).length > 0 && e('div', { style: { background: "#2a0e0e", border: "1px solid #5e2020", borderRadius: "8px", padding: "0.8rem 1rem", marginBottom: "2rem", fontSize: "0.78rem", color: "#e07070" } },
-          "⚠ Completează câmpurile obligatorii înainte de a trimite."
+        Object.keys(errors).length > 0 && e('div', { style: { background: "#fff5f5", border: "1.5px solid #fca5a5", borderRadius: "7px", padding: "0.8rem 1rem", marginBottom: "1.8rem", fontSize: "0.8rem", color: "#c0392b" } },
+          "Completeaza campurile obligatorii inainte de a trimite."
         ),
 
+        // 0
         e(Section, { number: "0", title: "Account" },
-          e('div', { style: { display: "grid", gridTemplateColumns: "200px 1fr", gap: "1.25rem", alignItems: "start" } },
-            e(Field, { label: "Cine trimite?" }, e(SelectField, { value: form.account, onChange: set("account"), options: ACCOUNTS, hasError: errors.account, placeholder: "— selectează —" })),
-            e(Field, { label: "Tip eveniment" }, e(EventTypePicker, { value: form.eventType, onChange: setVal("eventType"), hasError: errors.eventType }))
+          e('div', { style: { display: "grid", gridTemplateColumns: "190px 1fr", gap: "1.2rem", alignItems: "start" } },
+            e(Field, { label: "Cine trimite?" }, e(Select, { value: form.account, onChange: set("account"), options: ACCOUNTS, placeholder: "— selecteaza —", err: errors.account })),
+            e(Field, { label: "Tip eveniment" }, e(EventPicker, { value: form.eventType, onChange: setV("eventType"), err: errors.eventType }))
           )
         ),
 
+        // 1
         e(Section, { number: "1", title: "Client / Companie" },
-          e(InputField, { value: form.client, onChange: set("client"), placeholder: "ex. Vodafone Romania", hasError: errors.client })
+          e(Input, { value: form.client, onChange: set("client"), placeholder: "ex. Vodafone Romania", err: errors.client })
         ),
 
+        // 2
         e(Section, { number: "2", title: "Data / Perioada evenimentului" },
-          e(Field, { hint: "Scrie liber — date fixe, interval, weekenduri preferate, luni, orice restricții" },
-            e(TextArea, { value: form.period, onChange: set("period"), rows: 2, hasError: errors.period, placeholder: "ex. 13-15 iunie 2025\nsau: un weekend în iulie, preferabil mijloc de lună" })
+          e(Field, { hint: "Scrie liber — date fixe, interval, weekenduri preferate, restrictii" },
+            e(Textarea, { value: form.period, onChange: set("period"), rows: 2, err: errors.period, placeholder: "ex. 13-15 iunie 2025\nsau: un weekend in iulie, preferabil mijloc de luna" })
           )
         ),
 
-        e(Section, { number: "3", title: "Nr. participanți" },
-          e(Field, { hint: "Include participanți + echipă organizatoare dacă e cazul" },
-            e(InputField, { value: form.participants, onChange: set("participants"), placeholder: "ex. 80 participanți + 5 echipă", hasError: errors.participants })
+        // 3
+        e(Section, { number: "3", title: "Nr. participanti" },
+          e(Field, { hint: "Include participanti + echipa organizatoare daca e cazul" },
+            e(Input, { value: form.participants, onChange: set("participants"), placeholder: "ex. 80 participanti + 5 echipa", err: errors.participants })
           )
         ),
 
-        e(Section, { number: "4", title: "Oraș / Zonă solicitată" },
-          e(Field, { hint: "Distanță față de București, regiune, preferințe geografice" },
-            e(InputField, { value: form.zone, onChange: set("zone"), placeholder: "ex. max. 100km față de Buc., munte, zona Sibiu...", hasError: errors.zone })
+        // 4
+        e(Section, { number: "4", title: "Oras / Zona solicitata" },
+          e(Field, { hint: "Distanta fata de Bucuresti, regiune, preferinte geografice" },
+            e(Input, { value: form.zone, onChange: set("zone"), placeholder: "ex. max. 100km fata de Buc., munte, zona Sibiu...", err: errors.zone })
           )
         ),
 
-        e(Section, { number: "5", title: "Agendă estimată" },
-          e(Field, { hint: "F&B (mese, coffee break-uri), spații conferință / TB, activități extra, facilități necesare" },
-            e(TextArea, { value: form.agenda, onChange: set("agenda"), rows: 5, hasError: errors.agenda, placeholder: "ex.\n• Zi 1: check-in, cină gala, 1 sală conferință 80 pax\n• Zi 2: mic-dejun, 2× coffee break, prânz, plenară + 3 breakout\n• Zi 3: mic-dejun, activitate outdoor, prânz, check-out" })
+        // 5
+        e(Section, { number: "5", title: "Agenda estimata" },
+          e(Field, { hint: "F&B (mese, coffee break-uri), spatii conferinta / TB, activitati extra, facilitati necesare" },
+            e(Textarea, { value: form.agenda, onChange: set("agenda"), rows: 5, err: errors.agenda,
+              placeholder: "ex.\n• Zi 1: check-in, cina gala, 1 sala conferinta 80 pax\n• Zi 2: mic-dejun, 2x coffee break, pranz, plenara + 3 breakout\n• Zi 3: mic-dejun, activitate outdoor, pranz, check-out" })
           )
         ),
 
+        // 6
         e(Section, { number: "6", title: "Deadline predare propunere" },
-          e(Field, { hint: "Dată exactă sau termen relativ" },
-            e(InputField, { value: form.deadline, onChange: set("deadline"), placeholder: "ex. 20.05.2025  sau  urgent — 2 zile lucrătoare", hasError: errors.deadline })
+          e(Field, { hint: "Data exacta sau termen relativ" },
+            e(Input, { value: form.deadline, onChange: set("deadline"), placeholder: "ex. 20.05.2025  sau  urgent — 2 zile lucratoare", err: errors.deadline })
           )
         ),
 
-        e(Section, { number: "7", title: "Spații extra (TB / activări / expo)" },
-          e(Field, { hint: "Spații în plus față de sala principală — dacă e cazul" },
-            e(TextArea, { value: form.extraSpaces, onChange: set("extraSpaces"), rows: 3, placeholder: "ex. 1 spațiu outdoor min. 500mp pentru activitate TB, 1 sală expo 200mp" })
+        // 7
+        e(Section, { number: "7", title: "Spatii extra (TB / activari / expo)" },
+          e(Field, { hint: "Spatii in plus fata de sala principala — daca e cazul" },
+            e(Textarea, { value: form.extraSpaces, onChange: set("extraSpaces"), rows: 3,
+              placeholder: "ex. 1 spatiu outdoor min. 500mp pentru activitate TB, 1 sala expo 200mp" })
           )
         ),
 
-        e('div', { style: { borderTop: `1px solid ${border}`, paddingTop: "2rem", marginTop: "0.5rem" } },
-          e('div', { style: { fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: gold + "55", marginBottom: "1.25rem" } }, "NICE TO HAVE — click pentru a extinde"),
+        // 8 — mandatory
+        e(Section, { number: "8", title: "Sugestii / Observatii account" },
+          e(Field, { hint: "Orice informatie suplimentara relevanta pentru Location Manager" },
+            e(Textarea, { value: form.accountNotes, onChange: set("accountNotes"), rows: 4, err: errors.accountNotes,
+              placeholder: "ex. clientul e foarte sensibil la pret, prefera sa evite lanturile hoteliere mari, a mentionat ca i-a placut zona Brasovului..." })
+          )
+        ),
 
-          e(NiceBlock, { number: "a", title: "Locații anterioare / de evitat / sugerate de client" },
-            e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" } },
-              e(Field, { label: "Au mai fost la" }, e(TextArea, { value: form.pastLocations, onChange: set("pastLocations"), rows: 2, placeholder: "ex. Poiana Brasov, Sinaia..." })),
-              e(Field, { label: "Nu doresc la" }, e(TextArea, { value: form.avoidLocations, onChange: set("avoidLocations"), rows: 2, placeholder: "ex. zona Ploiești..." }))
+        // Nice to have
+        e('div', { style: { borderTop: "1.5px solid #e8eaef", paddingTop: "1.8rem", marginTop: "0.5rem" } },
+          e('div', { style: { fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ccc", marginBottom: "1rem" } }, "NICE TO HAVE — click pentru a extinde"),
+
+          e(NiceBlock, { number: "a", title: "Locatii anterioare / de evitat / sugerate de client" },
+            e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "0.8rem" } },
+              e(Field, { label: "Au mai fost la" }, e(Textarea, { value: form.pastLocations, onChange: set("pastLocations"), rows: 2, placeholder: "ex. Poiana Brasov, Sinaia..." })),
+              e(Field, { label: "Nu doresc la" }, e(Textarea, { value: form.avoidLocations, onChange: set("avoidLocations"), rows: 2, placeholder: "ex. zona Ploiesti..." }))
             ),
-            e(Field, { label: "Sugestii directe de la client" }, e(InputField, { value: form.clientSuggestions, onChange: set("clientSuggestions"), placeholder: "ex. Conacul X, Hotel Y" }))
+            e(Field, { label: "Sugestii directe de la client" }, e(Input, { value: form.clientSuggestions, onChange: set("clientSuggestions"), placeholder: "ex. Conacul X, Hotel Y" }))
           ),
 
-          e(NiceBlock, { number: "b", title: "Preferințe / stil locație" },
-            e(Field, null, e(TextArea, { value: form.stylePreferences, onChange: set("stylePreferences"), rows: 2, placeholder: "ex. locație atipică, nu hotel clasic de conferință, specific rustic..." }))
+          e(NiceBlock, { number: "b", title: "Preferinte / stil locatie" },
+            e(Textarea, { value: form.stylePreferences, onChange: set("stylePreferences"), rows: 2, placeholder: "ex. locatie atipica, nu hotel clasic de conferinta, specific rustic, design modern..." })
           ),
 
-          e(NiceBlock, { number: "c", title: "Necesar echipă & furnizori" },
-            e(Field, { hint: "Estimat inițial — va fi calibrat ulterior" },
+          e(NiceBlock, { number: "c", title: "Necesar echipa & furnizori" },
+            e(Field, { hint: "Estimat initial — va fi calibrat ulterior" },
               e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" } },
-                e(Field, { label: "Nr. persoane echipă" }, e(InputField, { value: form.teamCount, onChange: set("teamCount"), placeholder: "ex. 5" })),
-                e(Field, { label: "Camere necesare" }, e(InputField, { value: form.teamRooms, onChange: set("teamRooms"), placeholder: "ex. 4" })),
-                e(Field, { label: "Mese incluse" }, e(InputField, { value: form.teamMeals, onChange: set("teamMeals"), placeholder: "ex. toate" }))
+                e(Field, { label: "Nr. persoane echipa" }, e(Input, { value: form.teamCount, onChange: set("teamCount"), placeholder: "ex. 5" })),
+                e(Field, { label: "Camere necesare" }, e(Input, { value: form.teamRooms, onChange: set("teamRooms"), placeholder: "ex. 4" })),
+                e(Field, { label: "Mese incluse" }, e(Input, { value: form.teamMeals, onChange: set("teamMeals"), placeholder: "ex. toate" }))
               )
             )
-          ),
-
-          e(NiceBlock, { number: "d", title: "Sugestii sau observații din partea accountului" },
-            e(Field, null, e(TextArea, { value: form.accountNotes, onChange: set("accountNotes"), rows: 3, placeholder: "Orice informație suplimentară relevantă pentru Location Manager..." }))
           )
         ),
 
         e('div', { style: { marginTop: "2.5rem", display: "flex", justifyContent: "flex-end", gap: "1rem", alignItems: "center" } },
-          e('div', { style: { fontSize: "0.7rem", color: "#2a3a50" } }, "→ Google Sheets + email automat"),
-          e('button', {
-            onClick: handleSubmit,
-            style: {
-              background: `linear-gradient(135deg, ${gold}, ${goldLight})`,
-              border: "none", borderRadius: "8px", padding: "0.85rem 2.5rem",
-              color: "#0e1420", fontSize: "0.8rem", fontWeight: "700",
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              cursor: "pointer", boxShadow: `0 4px 20px ${gold}40`,
-            }
-          }, "Trimite Brief →")
+          e('span', { style: { fontSize: "0.7rem", color: "#bbb" } }, "→ Google Sheets + email automat"),
+          e('button', { onClick: submit, className: "btn-submit" }, "Trimite Brief →")
         )
       );
     };
 
-    createRoot(document.getElementById('root')).render(React.createElement(App));
+    createRoot(document.getElementById('root')).render(e(App));
   </script>
 </body>
 </html>
