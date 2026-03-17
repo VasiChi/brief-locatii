@@ -106,7 +106,7 @@
           justifyContent: "center", fontSize: "0.68rem", fontWeight: "700",
           flexShrink: 0, fontFamily: "monospace",
         } }, number),
-        e('h3', { style: { margin: 0, fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: optional ? "#555" : "#1a1f2e", fontWeight: "600" } },
+        e('h3', { style: { margin: 0, fontSize: "0.82rem", letterSpacing: "0.1em", textTransform: "uppercase", color: optional ? "#555" : "#111", fontWeight: "700" } },
           title, optional && e('span', { style: { color: "#888", fontSize: "0.68rem", fontWeight: "400" } }, " — opțional")
         )
       ),
@@ -255,7 +255,7 @@
         // 0
         e(Section, { number: "0", title: "Account" },
           e('div', { style: { display: "grid", gridTemplateColumns: "190px 1fr", gap: "1.2rem", alignItems: "start" } },
-            e(Field, { label: "Cine trimite?" }, e(Select, { value: form.account, onChange: set("account"), options: ACCOUNTS, placeholder: "— selecteaza —", err: errors.account })),
+            e(Field, { label: "Cine trimite?" }, e(Input, { value: form.account, onChange: set("account"), placeholder: "Numele tau", err: errors.account })),
             e(Field, { label: "Divizie" }, e(Diviziepicker, { value: form.divizie, onChange: setV("divizie"), err: errors.divizie }))
           )
         ),
@@ -327,18 +327,18 @@
         e('div', { style: { borderTop: "1.5px solid #e8eaef", paddingTop: "1.8rem", marginTop: "0.5rem" } },
           e('div', { style: { fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#888", marginBottom: "1rem" } }, "NICE TO HAVE — click pentru a extinde"),
 
-          e(NiceBlock, { number: "a", title: "Buget" },
-            e(Field, { hint: "Buget estimat total sau per persoana — ajuta la filtrarea locatiilor" },
-              e(Input, { value: form.budget, onChange: set("budget"), placeholder: "ex. 500 EUR/pers, sau total ~40.000 EUR, sau TBD" })
-            )
-          ),
-
-          e(NiceBlock, { number: "b", title: "Locatii anterioare / de evitat / sugerate de client" },
+          e(NiceBlock, { number: "a", title: "Locatii anterioare / de evitat / sugerate de client" },
             e('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "0.8rem" } },
               e(Field, { label: "Au mai fost la" }, e(Textarea, { value: form.pastLocations, onChange: set("pastLocations"), rows: 2, placeholder: "ex. Poiana Brasov, Sinaia..." })),
               e(Field, { label: "Nu doresc la" }, e(Textarea, { value: form.avoidLocations, onChange: set("avoidLocations"), rows: 2, placeholder: "ex. zona Ploiesti..." }))
             ),
             e(Field, { label: "Sugestii directe de la client" }, e(Input, { value: form.clientSuggestions, onChange: set("clientSuggestions"), placeholder: "ex. Conacul X, Hotel Y" }))
+          ),
+
+          e(NiceBlock, { number: "b", title: "Buget" },
+            e(Field, { hint: "Buget estimat total sau per persoana — ajuta la filtrarea locatiilor" },
+              e(Input, { value: form.budget, onChange: set("budget"), placeholder: "ex. 500 EUR/pers, sau total ~40.000 EUR, sau TBD" })
+            )
           ),
 
           e(NiceBlock, { number: "c", title: "Preferinte / stil locatie" },
