@@ -59,9 +59,28 @@
     import React, { useState } from 'react';
     import { createRoot } from 'react-dom/client';
 
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvUdyziV-9o2otvXTOp_kPCP4qWA5ZQi2GifBsQqbZiFb59cZxtsDCbrduDDzbm35R1g/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0ilsddM_iJv97N0figQ8xwKHcyHbm3pQAkcXYa8EllMB1RFHUF6KKiaAEMdtusyH_9w/exec";
 
-    const ACCOUNTS = ["Ana G.", "Emilia P.", "Eva M.", "Gabriel M.", "Ioana N.", "Loredana S.", "Marius B.", "Ramona C.", "Vadim P."];
+    const ACCOUNTS = [
+      { name: "Alexandra D.", email: "alexandra.davidescu@universum.ro" },
+      { name: "Ana G.",       email: "anamaria.gafita@universum.ro" },
+      { name: "Andrei G.",    email: "andrei.ghiurca@universum.ro" },
+      { name: "Bogdan P.",    email: "bogdan.popa@universum.ro" },
+      { name: "Cristiana M.", email: "cristiana.minca@universum.ro" },
+      { name: "Eliza P.",     email: "eliza.pisica@universum.ro" },
+      { name: "Emilia P.",    email: "emilia.petcu@universum.ro" },
+      { name: "Eva M.",       email: "eva.moraru@universum.ro" },
+      { name: "Gabriel M.",   email: "gabriel.manole@universum.ro" },
+      { name: "Ioana N.",     email: "ioana.neagu@universum.ro" },
+      { name: "Loredana S.",  email: "loredana.stancu@universum.ro" },
+      { name: "Marius B.",    email: "marius.blajut@universum.ro" },
+      { name: "Mihnea B.",    email: "mihnea.buzatu@universum.ro" },
+      { name: "Mihnea H.",    email: "mihnea.hanganu@universum.ro" },
+      { name: "Miriam B.",    email: "miriam.bejan@universum.ro" },
+      { name: "Ramona C.",    email: "ramona.chirita@universum.ro" },
+      { name: "Vadim P.",     email: "vadim.pusneac@universum.ro" },
+      { name: "Vasi C.",      email: "marian.chirita@universum.ro" },
+    ];
     const DIVIZII = [
       { value: "MICE", label: "MICE", desc: "conferință, incentive, congres" },
       { value: "TB", label: "TB", desc: "teambuilding, activare, outdoor" },
@@ -74,7 +93,7 @@
     ];
 
     const init = {
-      account: "", divizie: "", eventSubType: "", client: "", period: "",
+      account: "", accountEmail: "", divizie: "", eventSubType: "", client: "", period: "",
       participants: "", zone: "", agenda: "", deadline: "",
       extraSpaces: "", accountNotes: "", budget: "",
       pastLocations: "", avoidLocations: "", clientSuggestions: "",
@@ -255,7 +274,20 @@
         // 0
         e(Section, { number: "0", title: "Account" },
           e('div', { style: { display: "grid", gridTemplateColumns: "190px 1fr", gap: "1.2rem", alignItems: "start" } },
-            e(Field, { label: "Cine trimite?" }, e(Input, { value: form.account, onChange: set("account"), placeholder: "Numele tau", err: errors.account })),
+            e(Field, { label: "Cine trimite?" },
+              e('select', {
+                value: form.account,
+                onChange: ev => {
+                  const selected = ACCOUNTS.find(a => a.name === ev.target.value);
+                  setForm(p => ({ ...p, account: ev.target.value, accountEmail: selected ? selected.email : "" }));
+                },
+                className: `select-field${errors.account ? " error" : ""}`,
+                style: { color: form.account ? "#1a1f2e" : "#555" }
+              },
+                e('option', { value: "" }, "— selecteaza —"),
+                ACCOUNTS.map(a => e('option', { key: a.name, value: a.name }, a.name))
+              )
+            ),
             e(Field, { label: "Divizie" }, e(Diviziepicker, { value: form.divizie, onChange: setV("divizie"), err: errors.divizie }))
           )
         ),
