@@ -59,7 +59,7 @@
     import React, { useState } from 'react';
     import { createRoot } from 'react-dom/client';
 
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMUGQ2bR0YdJHHLQmPcvCymQgdDoUST69J0kLqgMb6kMQeMxYrkmQpTVwhev15uAUSKw/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzsM_oBhZ3JqXic_IZ-542QOALVUaJl2j8uWKjKGt27Qu7MRSessgdYBtIy1b7ktjIr7g/exec";
 
     const ACCOUNTS = [
       { name: "Alexandra D.", email: "alexandra.davidescu@universum.ro" },
@@ -93,7 +93,7 @@
     ];
 
     const init = {
-      account: "", accountEmail: "", divizie: "", eventSubType: "", client: "", period: "",
+      account: "", accountEmail: "", divizie: "", eventSubType: "", client: "", period: "", isPitch: false,
       participants: "", zone: "", agenda: "", deadline: "",
       extraSpaces: "", accountNotes: "", budget: "",
       pastLocations: "", avoidLocations: "", clientSuggestions: "",
@@ -295,6 +295,21 @@
         // 1
         e(Section, { number: "1", title: "Client / Companie" },
           e(Input, { value: form.client, onChange: set("client"), placeholder: "ex. Vodafone Romania", err: errors.client })
+        ),
+
+        // Pitch checkbox — between client and tip eveniment
+        e('div', { style: { marginBottom: "1.5rem", paddingLeft: "1.5rem" } },
+          e('label', { style: { display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" } },
+            e('input', {
+              type: "checkbox",
+              checked: form.isPitch,
+              onChange: ev => setForm(p => ({ ...p, isPitch: ev.target.checked })),
+              style: { width: "18px", height: "18px", accentColor: "#b89a5e", cursor: "pointer", flexShrink: 0 }
+            }),
+            e('div', null,
+              e('span', { style: { fontSize: "0.85rem", fontWeight: "700", color: "#1a1f2e" } }, "E Pitch?"),
+            )
+          )
         ),
 
         // 1b — Tip eveniment
